@@ -12,7 +12,7 @@ __pycache__/
 *.pkl
 
 # Uploads & data
-uploads/
+Dataset/
 
 # IDE files
 .idea/
