@@ -10,7 +10,6 @@ __pycache__/
 .ipynb_checkpoints/
 
 # ML models
-*.h5
 *.pth
 *.pkl
 *.pb
