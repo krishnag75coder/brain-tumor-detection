@@ -16,3 +16,4 @@ Dataset/
 
 # IDE files
 .idea/
+.venv/
