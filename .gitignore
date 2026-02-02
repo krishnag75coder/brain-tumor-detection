@@ -1,3 +1,18 @@
-venv
-Dataset
-model.h5
+# Virtual environments
+.venv/
+env/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# ML models
+*.h5
+*.pth
+*.pkl
+
+# Uploads & data
+uploads/
+
+# IDE files
+.idea/
