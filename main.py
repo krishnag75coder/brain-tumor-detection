@@ -1,38 +1,43 @@
 import os
-import gc  # <--- IMPORT THIS
+import gc
 import numpy as np
 from flask import Flask, render_template, request, send_from_directory
+
+# Import TensorFlow stuff but DO NOT load the model globally
+import tensorflow as tf
 from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing.image import load_img, img_to_array
 
-# Initialize Flask app
 app = Flask(__name__, template_folder="templates")
 
-# ---------- FIXED MODEL PATH ----------
+# ---------- CONFIG ----------
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(BASE_DIR, "model.h5")
-
-# Load model globally
-model = load_model(MODEL_PATH, compile=False)
-class_labels = ['pituitary', 'glioma', 'notumor', 'meningioma']
-
 UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
+class_labels = ['pituitary', 'glioma', 'notumor', 'meningioma']
+
 
 def predict_tumor(image_path):
+    # 1. Load Model ONLY when needed (Lazy Loading)
+    print("Loading model...")
+    model = load_model(MODEL_PATH, compile=False)
+
     try:
+        # 2. Process Image
+        print("Processing image...")
         IMAGE_SIZE = 128
         img = load_img(image_path, target_size=(IMAGE_SIZE, IMAGE_SIZE))
         img_array = img_to_array(img) / 255.0
         img_array = np.expand_dims(img_array, axis=0)
 
+        # 3. Predict
         predictions = model.predict(img_array)
         idx = np.argmax(predictions)
         confidence = float(np.max(predictions))
 
-        # Result logic
         if class_labels[idx] == 'notumor':
             result_text = "No Tumor"
         else:
@@ -41,10 +46,14 @@ def predict_tumor(image_path):
         return result_text, confidence
 
     except Exception as e:
-        return str(e), 0.0
+        print(f"Error: {e}")
+        return "Error processing image", 0.0
 
     finally:
-        # <--- CRITICAL: CLEAN UP MEMORY --->
+        # 4. CRITICAL: DESTROY MODEL TO FREE RAM
+        print("Cleaning up memory...")
+        del model
+        tf.keras.backend.clear_session()
         gc.collect()
 
 
@@ -56,6 +65,7 @@ def index():
             file_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
             file.save(file_path)
 
+            # This will now take a few seconds longer, but won't crash
             result, confidence = predict_tumor(file_path)
 
             return render_template(
